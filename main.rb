@@ -1,8 +1,9 @@
 require "./lexer.rb"
 
-file = File.read("example.c+")
-lexer = Lexer.new file
-while token = lexer.next_token!
-    puts token
+lexer = Lexer.new "example.c+"
+
+while true
+    token, data = lexer.next_token!
+    puts "#{token}: #{data}"
+    break if token == :eof
 end
-p Token::EOF
