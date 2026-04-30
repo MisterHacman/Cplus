@@ -1,5 +1,7 @@
 class Lexer
+    attr_reader :tokens
     def initialize(filename)
+        @tokens = []
         @filename = filename
         @buffer = File.read(filename)
         @index = 0
@@ -7,6 +9,11 @@ class Lexer
     end
 
     def next_token!
+        @tokens << get_next_token!
+        return @tokens[@tokens.length - 1]
+    end
+
+    def get_next_token!
         while true
             case ch
             in nil
@@ -23,17 +30,22 @@ class Lexer
                 if @begin_reprise != -1
                     raise error("you need to end reprise before creating a new one", @begin_reprise, 3, "new one here", @index, 3)
                 end
-                @begin_reprise = @index
+                @begin_reprise = @tokens.length
                 advance! 3
-                return :begin_reprise, nil
+                return get_next_token!
             in ":" if @buffer[@index, 3] == ":||"
                 if @begin_reprise == -1
                     raise error("no beginning reprise", @index, 3)
                 end
                 reprise_ptr = @begin_reprise
                 @begin_reprise = -1
-                advance! 3
-                return :end_reprise, reprise_ptr
+                if advance!(3) == "x"
+                    next_ch!
+                    return :end_reprise, [reprise_ptr, Float::INFINITY] if @buffer[@index, 3] == "inf"
+                    num_iters = next_regex!(/\G(\d+)/).to_i
+                    return :end_reprise, [reprise_ptr, num_iters]
+                end
+                return :end_reprise, [reprise_ptr, 1]
             in _
                 next_ch!
                 next
@@ -50,22 +62,21 @@ class Lexer
         if !extension
             return nil
         end
-        return note + extension
+        return note, extension
     end
 
-    $EXTENSION_REGEX = /\G(sus(2|4|)|(-|\+|)((M?7|6)(b5)?|(6\/9|M?9|add9)|(M?11|add11)(b5)?|M?13(b5)?|b5)?)/
-    def next_extension!
-        if result = @buffer.match($EXTENSION_REGEX, @index)
-            advance! result.captures[0].length
-            return result.captures[0]
-        else
-            raise NotImplementedError, 'unreachable'
-        end
-    end
-
-    $NOTE_REGEX = /\G(Ab|A#|Bb|C#|Db|D#|Eb|F#|Gb|G#|[A-G])/
+    $NOTE_REGEX = /\G(A#|Bb|C#|Db|D#|Eb|F#|Gb|G#|Ab|[A-G])/
     def next_note!
-        if result = @buffer.match($NOTE_REGEX, @index)
+        next_regex! $NOTE_REGEX
+    end
+
+    $EXTENSION_REGEX = /\G(sus(2|4|)|6\/9|(-|m|\+|aug)?((M|7|M7|6)(b5)?|(M?9|add9)(b5)?|(M?11|add11)(b5)?|M?13(b5)?|b5)?)/
+    def next_extension!
+        next_regex! $EXTENSION_REGEX
+    end
+
+    def next_regex!(regex)
+        if result = @buffer.match(regex, @index)
             advance! result.captures[0].length
             return result.captures[0]
         else

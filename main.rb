@@ -1,9 +1,9 @@
 require "./lexer.rb"
+require "./lexer-error.rb"
+require "./interpreter.rb"
 
 lexer = Lexer.new "example.c+"
+interpreter = Interpreter.new lexer
 
-while true
-    token, data = lexer.next_token!
-    puts "#{token}: #{data}"
-    break if token == :eof
+while interpreter.execute_next_token!
 end
