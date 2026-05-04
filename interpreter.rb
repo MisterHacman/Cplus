@@ -13,10 +13,9 @@ class Interpreter
         case @lexer.tokens[@index]
         in :eof, _
             return false
-        in :chord, [note, extension]
-            execute_chord!(note, extension)
+        in :chord, [note, extension, base]
+            execute_chord!(note, extension, base)
         in :base, note
-
             char = STDIN.getch
             if char == "\u0003"
                 exit(0)
@@ -39,9 +38,10 @@ class Interpreter
         return true
     end
 
-    def execute_chord!(note, extension)
+    def execute_chord!(note, extension, base)
         var = var_index note
-        if extension == ""
+        if !extension && base
+        elsif !extension && !base
             if @variables[var].chr == "\r"
                 print "\n"
             else
@@ -52,15 +52,14 @@ class Interpreter
         elsif extension[0, 3] == "aug"
             execute_add!(note, extension[2..], 1)
         elsif extension[0] == "M"
-            if extension[1] == nil
-                if @variables[var] < 1
-                    @variables[var] = 1
-                end
-            else
-                num = extension[1..].match(/(\d+)/).captures[0].to_i
-                if num > @variables[var]
-                    @variables[var] = num
-                end
+            num = 7
+            num = extension[1..].match(/(\d+)/).captures[0].to_i if extension[1]
+            @variables[var] = num if @variables[var] < num
+        elsif extension[0, 3] == "sus"
+            num = 4
+            num = extension[3].to_i if extension[3]
+            if @variables[var] == num
+                @index += 1
             end
         elsif extension[0, 3] == "add"
             @variables[var] = (@variables[var].to_s + extension[3..]).to_i
@@ -69,6 +68,9 @@ class Interpreter
         elsif extension[0].match?(/\d/)
             num = extension.match(/(\d+)/).captures[0].to_i
             @variables[var] = num
+        end
+        if base
+            @variables[var_index base] = @variables[var]
         end
     end
 

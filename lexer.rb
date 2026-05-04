@@ -55,14 +55,12 @@ class Lexer
 
     def next_chord!
         note = self.next_note!
-        if !note
-            return nil
-        end
         extension = next_extension!
-        if !extension
-            return nil
+        if ch == "/"
+            next_ch!
+            base = next_note!
         end
-        return note, extension
+        return note, extension, base
     end
 
     $NOTE_REGEX = /\G(A#|Bb|C#|Db|D#|Eb|F#|Gb|G#|Ab|[A-G])/
@@ -78,6 +76,7 @@ class Lexer
     def next_regex!(regex)
         if result = @buffer.match(regex, @index)
             advance! result.captures[0].length
+            return nil if result.captures[0] == ""
             return result.captures[0]
         else
             return nil
