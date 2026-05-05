@@ -46,6 +46,11 @@ class Lexer
                     return :end_reprise, [reprise_ptr, num_iters]
                 end
                 return :end_reprise, [reprise_ptr, 1]
+            in "#"
+                while next_ch! != "\n"
+                end
+                next_ch!
+                next
             in _
                 next_ch!
                 next

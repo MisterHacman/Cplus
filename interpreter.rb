@@ -1,21 +1,35 @@
 require "io/console"
 
 class Interpreter
-    def initialize(lexer)
+    def initialize(lexer, debug=false)
         @variables = [0,0,0,0,0,0,0,0,0,0,0]
         @lexer = lexer
         while @lexer.next_token![0] != :eof
         end
         @index = 0
+        @debug = debug
+        @current_inst_str = ""
+    end
+
+    def print_vars
+        var_names = ["A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab"]
+        print "#{@current_inst_str}: \t["
+        @variables.each_with_index do |var, index|
+            print "#{var_names[index]}: #{var}, " if var != 0
+        end
+        puts "]"
     end
 
     def execute_next_token!
+        print_vars if @debug
         case @lexer.tokens[@index]
         in :eof, _
             return false
         in :chord, [note, extension, base]
+            @current_inst_str = "#{note}#{extension}#{"/#{base}" if base}"
             execute_chord!(note, extension, base)
         in :base, note
+            @current_inst_str = "/#{note}"
             char = STDIN.getch
             if char == "\u0003"
                 exit(0)
@@ -25,6 +39,7 @@ class Interpreter
             @index += 1
             return execute_next_token!
         in :end_reprise, [jump_pos, num_iters]
+            @current_inst_str = ":||#{"x#{num_iters}" if num_iters}"
             if jump_pos == -1
                 @index += 1
                 return execute_next_token!
@@ -42,10 +57,15 @@ class Interpreter
         var = var_index note
         if !extension && base
         elsif !extension && !base
-            if @variables[var].chr == "\r"
-                print "\n"
+            if @debug
+                print "Print: "
+                p @variables[var_index note].chr
             else
-                print @variables[var_index note].chr
+                if @variables[var].chr == "\r"
+                    print "\n"
+                else
+                    print @variables[var_index note].chr
+                end
             end
         elsif "-m".include?(extension[0]) || extension[0] == "+"
             execute_add!(note, extension, "-m".include?(extension[0]) ? -1 : 1)
@@ -104,6 +124,6 @@ class Interpreter
     end
 
     def token
-        @tokens[@index]
+        @lexer.tokens[@index]
     end
 end
