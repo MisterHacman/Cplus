@@ -1,3 +1,4 @@
+# An iterator interface for tokenizing a file.
 class Lexer
     attr_reader :tokens
     def initialize(filename)
@@ -8,18 +9,19 @@ class Lexer
         @begin_reprise = -1
     end
 
-    # Advance lexer one token, append the token to @tokens and return it.
+    # Advance lexer one token, append the token to `@tokens` and return it.
     #
     # The tokens shape depends on the token type.
-    # A chord has the shape [:chord, [<note>, <quality>, <extension>, <alteration>, <base>]], <note> being the only required item, the rest can be "".
+    # A chord has the shape `[:chord, [<note>, <quality>, <extension>, <alteration>, <base>]]`,
+    # <note> being the only required item, the rest can be `""`.
     #
-    # A base has the shape [:base, <note>] and an end reprise,
-    # the shape [:end_reprise, [<jump_ptr>, <reps>]]. End of file has the simple shape [:eof, nil]
+    # A base has the shape `[:base, <note>]` and an end reprise,
+    # the shape `[:end_reprise, [<jump_ptr>, <reps>]]`. End of file has the simple shape `[:eof, nil]`
     # 
     # @return [Array] returns a token in the form [keyword, data]
     # @raise [RuntimeError] if we hit end of file without closing a reprise
     #
-    # @examples
+    # @example
     #   Lexer(@buffer = "Gb+#9", @index = 0).get_next_token! #=> [:chord, ["Gb", "+", "", "#9", ""]]
     #   Lexer(@buffer = "Gb+#9", @index = 5).get_next_token! #=> [:eof, nil]
     #   Lexer(@buffer = "Gb+#9", @index = 6).get_next_token! #=> [:eof, nil]
@@ -28,8 +30,7 @@ class Lexer
     #   Lexer(@buffer = "/A ||: B :||x5", @index = 8).get_next_token! #=> [:end_reprise, [1, 5]]
     #   Lexer(@buffer = "||: ", 3).get_next_token! #=> RuntimeError
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def next_token!
         @tokens << get_next_token!
         return @tokens[@tokens.length - 1]
@@ -41,7 +42,7 @@ class Lexer
     # @return [Array] the token which is returned
     # @raise [RuntimeError] if we hit end of file without closing a reprise
     #
-    # @examples
+    # @example
     #   Lexer(@buffer = "Gb+#9", @index = 0).get_next_token! #=> [:chord, ["Gb", "+", "", "#9", ""]]
     #   Lexer(@buffer = "Gb+#9", @index = 5).get_next_token! #=> [:eof, nil]
     #   Lexer(@buffer = "Gb+#9", @index = 6).get_next_token! #=> [:eof, nil]
@@ -50,16 +51,13 @@ class Lexer
     #   Lexer(@buffer = "/A ||: B :||x5", @index = 8).get_next_token! #=> [:end_reprise, [1, 5]]
     #   Lexer(@buffer = "||: ", 3).get_next_token! #=> RuntimeError
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def get_next_token!
         while true
             case ch
             # Eof
             in nil
-                if @begin_reprise != -1
-                    raise error("you need to end reprise, found end of file", @begin_reprise, 3)
-                end
+                raise error("you need to end reprise, found end of file", @begin_reprise, 3) unless @begin_reprise == -1
                 return :eof, nil
             # Chord
             in "A".."G"
@@ -96,38 +94,32 @@ class Lexer
     # @return [Array] the proceding token
     # @raise [RuntimeError] if there was an unended begin reprise previously
     #
-    # @examples
+    # @example
     #   Lexer(@filename = "examples/add.c+", @index = 5).next_start_reprise! #=> [:chord, ["C", "+", "7", "", ""]]
     #   Lexer(@buffer = "||: ||:", index = 3).next_start_reprise! #=> RuntimeError
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def next_start_reprise!
-        if @begin_reprise != -1
-            raise error("you need to end reprise before creating a new one", @begin_reprise, 3, "new one here", @index, 3)
-        end
+        raise error("you need to end reprise before creating a new one", @begin_reprise, 3, "new one here", @index, 3) unless @begin_reprise == -1
         @begin_reprise = @tokens.length
         advance! 3
         return get_next_token!
     end
 
-    # Advance end reprise. This returns a token of the form [:end_reprise, [<jump_ptr>, <reps>]], where
-    # <jump_ptr> is the index in @tokens we are jumping to when returning and <reps> is the amount of
+    # Advance end reprise. This returns a token of the form `[:end_reprise, [<jump_ptr>, <reps>]]`, where
+    # `<jump_ptr>` is the index in @tokens we are jumping to when returning and `<reps>` is the amount of
     # times to return.
     #
     # @return [Array] the end reprise token
     # @raise [RuntimeError] if there is no matching begin reprise
     #
-    # @examples
+    # @example
     #   Lexer(@filename = "examples/add.c+", @index = 13).next_end_reprise! #=> [:end_reprise, [2, 5]]
     #   Lexer(@buffer = ":||", @index = 0).next_end_reprise! #=> RuntimeError
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def next_end_reprise!
-        if @begin_reprise == -1
-            raise error("no beginning reprise", @index, 3)
-        end
+        raise error("no beginning reprise", @index, 3) if @begin_reprise == -1
         reprise_ptr = @begin_reprise
         @begin_reprise = -1
         if advance!(3) == "x"
@@ -145,20 +137,19 @@ class Lexer
     $ALTERATION_REGEX = /^((b5)?(b9|#9)?(#11)?(b13)?)/
     $INVALID_REGEX = /((-|m).*(sus|#9)|(\+|aug).*(b5|b13)|9.*9|9sus2|11.*11|11sus[^2]|13.*13|6.*13|sus2.*9|sus[^2].*#11|b5.*#11)/
 
-    # Advance chord. Returns a token of the shape [:chord, [<note>, <quality>, <extension>, <alterations>, <base>]].
+    # Advance chord. Returns a token of the shape `[:chord, [<note>, <quality>, <extension>, <alterations>, <base>]]`.
     #
     # @return [Array] the token
-    # @raise [RuntimeError] if chord is invalid, given by the $INVALID_REGEX regular expression
+    # @raise [RuntimeError] if chord is invalid, given by the `$INVALID_REGEX` regular expression
     #
-    # @examples
+    # @example
     #   Lexer(@buffer = "C").next_chord! #=> [:chord, ["C", "", "", "", ""]]
     #   Lexer(@buffer = "Db9").next_chord! #=> [:chord, ["Db", "", "9", "", ""]]
     #   Lexer(@buffer = "Dmb9").next_chord! #=> [:chord, ["D", "m", "", "b9", ""]]
     #   Lexer(@buffer = "Dmb9/C").next_chord! #=> [:chord, ["D", "m", "", "b9", "C"]]
     #   Lexer(@buffer = "D9b9").next_chord! #=> RuntimeError
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def next_chord!
         start_index = @index
         note = next_regex! $NOTE_REGEX
@@ -178,15 +169,14 @@ class Lexer
     #
     # @param [Regexp] the regex
     # @return [String] the matching string
-    # @raise [RuntimeError] if @index >= @buffer.length
+    # @raise [RuntimeError] unless `@index` is less than `@buffer.length`
     #
-    # @examples
+    # @example
     #   Lexer(@buffer = "110.", @index = 1).next_regex!(/^(\d+)/) #=> "10"
     #   Lexer(@buffer = "110.", @index = 3).next_regex!(/^(\d+)/) #=> ""
     #   Lexer(@buffer = "110.", @index = 5).next_regex!(/^(\d+)/) #=> RuntimeError
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def next_regex!(regex)
         if result = @buffer[@index..].match(regex)
             advance! result.captures[0].length
@@ -196,17 +186,16 @@ class Lexer
         end
     end
 
-    # Advances @buffer n characters and returns the character at that position.
+    # Advances `@buffer` `n` characters and returns the character at that position.
     #
     # @param [Integer] how many characters to advance
     # @return [String, nil] the character at the end of the advancement, nil if we hit end of file
     #
-    # @examples
+    # @example
     #   Lexer(@buffer = "110.", @index = 0).advance!(2) #=> "0"
     #   Lexer(@buffer = "110.", @index = 0).advance!(4) #=> nil
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def advance!(n)
         for _ in 1..n
             next_ch!
@@ -214,21 +203,29 @@ class Lexer
         return ch
     end
 
-    # Advance @buffer one character and return the character at that position.
+    # Advance `@buffer` one character and return the character at that position.
     #
     # @return [String, nil] the character, nil if we hit end of file
     #
-    # @examples
+    # @example
     #   Lexer(@buffer = "110.", @index = 1).next_ch! #=> "0"
     #   Lexer(@buffer = "110.", @index = 3).next_ch! #=> nil
     #
-    # @author
-    # August Stokes
+    # @author August Stokes
     def next_ch!
         @index += 1
         return @buffer[@index]
     end
 
+    # Returns current character in `@buffer`
+    #
+    # @return [String, nil] the character, nil if at end of file
+    #
+    # @example
+    #   Lexer(@buffer = "110.", @index = 1).ch #=> "1"
+    #   Lexer(@buffer = "110.", @index = 4).ch #=> nil
+    #
+    # @author August Stokes
     def ch
         return @buffer[@index]
     end
