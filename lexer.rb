@@ -1,21 +1,5 @@
 class Lexer
     attr_reader :tokens
-    
-    # Initialize a lexer object
-    #
-    # @param filename [String] the file which will be tokenized
-    # 
-    # @examples
-    #   Lexer.new("examples/hello-world.c+") #=>
-    #     Lexer(
-    #       @tokens = [],
-    #       @filename = "examples/hello-world.c+",
-    #       @buffer = "Gb+#9 Gb Abadd9 Ab+ Ab/A Ab+ Ab Ab+7 Ab Ab A+11 A Db+#11 Dbm Db Gadd9 Gm Gm G A Ab/Bb Bb+7 Bbm Bb Ab Abm7 Abm Ab",
-    #       @index = 0,
-    #       @begin_reprise = -1)
-    #
-    # @author
-    # August Stokes
     def initialize(filename)
         @tokens = []
         @filename = filename
