@@ -304,6 +304,8 @@ class Interpreter
     #   interpreter.token #=> [:chord, ["C","","","",""]]
     #   interpreter.index += 1
     #   interpreter.token #=> [:eof, nil]
+    #
+    # @author August Stokes
     def token
         @lexer.tokens[@index]
     end
