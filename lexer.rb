@@ -19,7 +19,7 @@ class Lexer
     # the shape `[:end_reprise, [<jump_ptr>, <reps>]]`. End of file has the simple shape `[:eof, nil]`
     # 
     # @return [Array] returns a token in the form [keyword, data]
-    # @raise [RuntimeError] if we hit end of file without closing a reprise
+    # @raise [CompilerError] if we hit end of file without closing a reprise
     #
     # @example
     #   Lexer(@buffer = "Gb+#9", @index = 0).get_next_token! #=> [:chord, ["Gb", "+", "", "#9", ""]]
@@ -40,7 +40,7 @@ class Lexer
     # Use `next_token!` instead of this one, as it doesn't fully advance the lexer.
     #
     # @return [Array] the token which is returned
-    # @raise [RuntimeError] if we hit end of file without closing a reprise
+    # @raise [CompilerError] if we hit end of file without closing a reprise
     #
     # @example
     #   Lexer(@buffer = "Gb+#9", @index = 0).get_next_token! #=> [:chord, ["Gb", "+", "", "#9", ""]]
@@ -57,7 +57,7 @@ class Lexer
             case ch
             # Eof
             in nil
-                raise error("you need to end reprise, found end of file", @begin_reprise, 3) unless @begin_reprise == -1
+                raise CompilerError, error("you need to end reprise, found end of file", @begin_reprise, 3) unless @begin_reprise == -1
                 return :eof, nil
             # Chord
             in "A".."G"
@@ -92,7 +92,7 @@ class Lexer
     # it will return the token after this one.
     #
     # @return [Array] the proceding token
-    # @raise [RuntimeError] if there was an unended begin reprise previously
+    # @raise [CompilerError] if there was an unended begin reprise previously
     #
     # @example
     #   Lexer(@filename = "examples/add.c+", @index = 5).next_start_reprise! #=> [:chord, ["C", "+", "7", "", ""]]
@@ -100,7 +100,7 @@ class Lexer
     #
     # @author August Stokes
     def next_start_reprise!
-        raise error("you need to end reprise before creating a new one", @begin_reprise, 3, "new one here", @index, 3) unless @begin_reprise == -1
+        raise CompilerError, error("you need to end reprise before creating a new one", @begin_reprise, 3, "new one here", @index, 3) unless @begin_reprise == -1
         @begin_reprise = @tokens.length
         advance! 3
         return get_next_token!
@@ -111,7 +111,7 @@ class Lexer
     # times to return.
     #
     # @return [Array] the end reprise token
-    # @raise [RuntimeError] if there is no matching begin reprise
+    # @raise [CompilerError] if there is no matching begin reprise
     #
     # @example
     #   Lexer(@filename = "examples/add.c+", @index = 13).next_end_reprise! #=> [:end_reprise, [2, 5]]
@@ -119,7 +119,7 @@ class Lexer
     #
     # @author August Stokes
     def next_end_reprise!
-        raise error("no beginning reprise", @index, 3) if @begin_reprise == -1
+        raise CompilerError, error("no beginning reprise", @index, 3) if @begin_reprise == -1
         reprise_ptr = @begin_reprise
         @begin_reprise = -1
         if advance!(3) == "x"
@@ -140,7 +140,7 @@ class Lexer
     # Advance chord. Returns a token of the shape `[:chord, [<note>, <quality>, <extension>, <alterations>, <base>]]`.
     #
     # @return [Array] the token
-    # @raise [RuntimeError] if chord is invalid, given by the `$INVALID_REGEX` regular expression
+    # @raise [CompilerError] if chord is invalid, given by the `$INVALID_REGEX` regular expression
     #
     # @example
     #   Lexer(@buffer = "C").next_chord! #=> [:chord, ["C", "", "", "", ""]]
@@ -156,7 +156,7 @@ class Lexer
         quality = next_regex! $QUALITY_REGEX
         extension = next_regex! $EXTENSION_REGEX
         alteration = next_regex! $ALTERATION_REGEX
-        raise error("invalid chord", start_index, @index - start_index) if (quality + extension + alteration).match?($INVALID_REGEX)
+        raise CompilerError, error("invalid chord", start_index, @index - start_index) if (quality + extension + alteration).match?($INVALID_REGEX)
         base = ""
         if ch == "/"
             next_ch!
@@ -169,7 +169,7 @@ class Lexer
     #
     # @param [Regexp] the regex
     # @return [String] the matching string
-    # @raise [RuntimeError] unless `@index` is less than `@buffer.length`
+    # @raise [CompilerError] unless `@index` is less than `@buffer.length`
     #
     # @example
     #   Lexer(@buffer = "110.", @index = 1).next_regex!(/^(\d+)/) #=> "10"

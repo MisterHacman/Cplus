@@ -13,7 +13,7 @@ class Lexer
     # @example
     #   Lexer(@filename = "examples/example.c+", @buffer = "||:", @index = 3)
     #     .error("you need to end reprise, found end of file", 0, 3)
-    #     #=> %q{
+    #     #=> prinst %q{
     #     #=> Error: you need to end reprise, found end of file
     #     #=>   -> examples/example.c+ at [Ln 1, Col 1]
     #     #=>   | 1 ||:
@@ -21,7 +21,7 @@ class Lexer
     #     #=> }
     #   Lexer(@filename = "examples/example.c+", @buffer = "||: ||:", @index = 3)
     #     .error("you need to end reprise, found end of file", 0, 3, "")
-    #     #=> %q{
+    #     #=> prints %q{
     #     #=> Error: you need to end reprise before creating a new one
     #     #=>   -> .\examples\blues.c+ at [Ln 1, Col 1]
     #     #=>   | 1 ||: ||:
@@ -52,7 +52,7 @@ class Lexer
     # @example
     #   Lexer(@filename = "examples/example.c+", @buffer = "||:", @index = 3)
     #     .error_msg("you need to end reprise, found end of file", 0, 3)
-    #     #=> %q{
+    #     #=> prints %q{
     #     #=> you need to end reprise, found end of file
     #     #=>   -> examples/example.c+ at [Ln 1, Col 1]
     #     #=>   | 1 ||:
@@ -114,5 +114,12 @@ class Lexer
             i += 1
         end
         return row, column
+    end
+end
+
+# Error class for errors in the file
+class CompilerError < StandardError
+    def initialize(msg="degault message")
+        super(msg)
     end
 end
